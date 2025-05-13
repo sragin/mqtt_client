@@ -18,10 +18,10 @@ from rclpy.node import Node
 from roller_interfaces.msg import RollerStatus
 from std_msgs.msg import String
 
-BROKER = 'withpoints.asuscomm.com'
-PORT = 50592
-MQTT_TOPIC = "ros2/mqtt"
-ROS_TOPIC = "mqtt_to_ros"
+# BROKER = 'withpoints.asuscomm.com'
+# PORT = 50592
+BROKER = 'localhost'
+PORT = 1883
 CLIENT_ID = "roller_cmd_recv_vib"
 USERNAME = "roller"
 PASSWORD = "roller"
@@ -46,22 +46,23 @@ class MQTTClientNode(Node):
             qos_profile=10
         )
         self.mqtt_client = mqtt.Client(client_id=CLIENT_ID)
-        self.mqtt_client.username_pw_set(USERNAME, PASSWORD)
+        # self.mqtt_client.username_pw_set(USERNAME, PASSWORD)
         self.mqtt_client.on_connect = self.on_connect
         self.mqtt_client.on_message = self.on_message
         self.mqtt_client.on_disconnect = self.on_disconnect
         self.connect_thread = Thread(target=self.connect, daemon=True)
         self.connect_thread.start()
-        
-        self.timer = self.create_timer(1, self.timer_callback)
+
+        self.send_mqtt_timer = self.create_timer(1, self.send_equip_data)
 
     # MQTT 함수
     def connect(self):
-        while not self.mqtt_client.is_connected:
+        while not self.mqtt_client.is_connected():
             try:
                 self.get_logger().info('Connecting to MQTT Broker...')
                 self.mqtt_client.connect(BROKER, PORT, 60)
-                self.mqtt_client.loop_forever()
+                self.mqtt_client.loop_start()
+                break
             except Exception as e:
                 self.get_logger().error(f'Connection error: {e}')
                 self.get_logger().info('Retrying in 5 seconds...')
@@ -97,11 +98,11 @@ class MQTTClientNode(Node):
     def recv_rlrstat(self, msg:RollerStatus):
         self.equip_data["rlr_drum_steering"] = msg.steer_angle
 
-    def timer_callback(self):
+    def send_equip_data(self):
         msg = String()
         msg.data = json.dumps(self.equip_data, ensure_ascii=False)
 
-        if self.mqtt_client.is_connected:        
+        if self.mqtt_client.is_connected():
             self.mqtt_client.publish("equipment/roller", msg.data)
             self.get_logger().info(f'Published data to MQTT topic: {msg.data}')
 
@@ -139,13 +140,16 @@ class MQTTClientNode(Node):
 
 
 def main(args=None):
-    rclpy.init(args=args)
-    node = MQTTClientNode()
-    rclpy.spin(node)
-    node.mqtt_client.disconnect()
-    node.mqtt_client.loop_stop()
-    node.destroy_node()
-    rclpy.shutdown()
+    try:
+        rclpy.init(args=args)
+        node = MQTTClientNode()
+        rclpy.spin(node)
+    except KeyboardInterrupt:
+        print('KeyboardInterrupt')
+    finally:
+        node.mqtt_client.disconnect()
+        node.mqtt_client.loop_stop()
+        node.destroy_node()
 
 
 if __name__ == '__main__':
