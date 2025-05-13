@@ -88,7 +88,16 @@ class MQTTClientNode(Node):
 
     # 콜백함수
     def on_message(self, client, userdata, msg):
-        self.get_logger().info(f'Message received on topic {msg.topic}: {msg.payload.decode()}')
+        try:
+            payload = msg.payload.decode('utf-8')
+            self.get_logger().info(f'Message received on topic {msg.topic}: {payload}')
+
+            json_data = json.loads(payload)
+            self.get_logger().info(f'Parsed JSON data: {json.dumps(json_data, ensure_ascii=False, indent=2)}')
+        except json.JSONDecodeError:
+            self.get_logger().info('Message is not in JSON format')
+        except UnicodeDecodeError:
+            self.get_logger().error('Failed to decode message with UTF-8')
 
     def recv_gpsmsg(self, msg:GPSMsg):
         self.equip_data['rlr_drm_lttd'] = msg.lat
