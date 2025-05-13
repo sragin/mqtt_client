@@ -49,7 +49,7 @@ class MQTTClientNode(Node):
 
     # MQTT 함수
     def connect(self):
-        while True:
+        while not self.mqtt_client.is_connected:
             try:
                 self.get_logger().info('Connecting to MQTT Broker...')
                 self.mqtt_client.connect(BROKER, PORT, 60)
