@@ -8,8 +8,9 @@ copyright KOCETI
 
 import json
 import time
+import signal
 from datetime import datetime
-from threading import Thread
+from threading import Thread, Event
 
 import paho.mqtt.client as mqtt
 import rclpy
@@ -32,6 +33,7 @@ class MQTTClientNode(Node):
         super().__init__('mqtt_client_node')
         self.get_logger().info(f'MQTT Client to Scop via Withpoints broker started.')
         self.equip_data = self.make_equip_data()
+        self.stop_event = Event()
 
         self.gps_msg_subscriber = self.create_subscription(
             msg_type=GPSMsg,
@@ -57,7 +59,7 @@ class MQTTClientNode(Node):
 
     # MQTT 함수
     def connect(self):
-        while not self.mqtt_client.is_connected():
+        while not self.stop_event.is_set() and not self.mqtt_client.is_connected():
             try:
                 self.get_logger().info('Connecting to MQTT Broker...')
                 self.mqtt_client.connect(BROKER, PORT, 60)
@@ -65,8 +67,9 @@ class MQTTClientNode(Node):
                 break
             except Exception as e:
                 self.get_logger().error(f'Connection error: {e}')
-                self.get_logger().info('Retrying in 5 seconds...')
-                time.sleep(5)
+                if not self.stop_event.is_set():
+                    self.get_logger().info('Retrying in 5 seconds...')
+                    time.sleep(5)
 
     def on_connect(self, client, userdata, flags, rc):
         if rc == 0:
@@ -77,8 +80,9 @@ class MQTTClientNode(Node):
 
     def on_disconnect(self, client, userdata, rc):
         self.get_logger().info('Disconnected from MQTT broker')
-        time.sleep(5)
-        self.connect()
+        if not self.stop_event.is_set():
+            time.sleep(5)
+            self.connect()
 
     # 콜백함수
     def on_message(self, client, userdata, msg):
@@ -105,6 +109,13 @@ class MQTTClientNode(Node):
         if self.mqtt_client.is_connected():
             self.mqtt_client.publish('equipment/roller', msg.data)
             self.get_logger().info(f'Published data to MQTT topic: {msg.data}')
+
+    def cleanup(self):
+        self.stop_event.set()
+        if self.mqtt_client.is_connected():
+            self.mqtt_client.disconnect()
+        self.mqtt_client.loop_stop()
+        self.connect_thread.join(timeout=1.0)
 
     # 유틸함수
     def make_equip_data(self):
@@ -140,16 +151,19 @@ class MQTTClientNode(Node):
 
 
 def main(args=None):
-    try:
-        rclpy.init(args=args)
-        node = MQTTClientNode()
-        rclpy.spin(node)
-    except KeyboardInterrupt:
-        print('KeyboardInterrupt')
-    finally:
-        node.mqtt_client.disconnect()
-        node.mqtt_client.loop_stop()
+    rclpy.init(args=args)
+    node = MQTTClientNode()
+
+    def signal_handler(sig, frame):
+        node.get_logger().info('Shutting down...')
+        node.cleanup()
         node.destroy_node()
+        rclpy.shutdown()
+        exit(0)
+
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+    rclpy.spin(node)
 
 
 if __name__ == '__main__':
