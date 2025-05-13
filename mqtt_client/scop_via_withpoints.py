@@ -67,22 +67,24 @@ class MQTTClientNode(Node):
                 break
             except Exception as e:
                 self.get_logger().error(f'Connection error: {e}')
-                if not self.stop_event.is_set():
-                    self.get_logger().info('Retrying in 5 seconds...')
-                    time.sleep(5)
+                if self.stop_event.is_set():
+                    return
+                self.get_logger().info('Retrying in 5 seconds...')
+                time.sleep(5)
 
     def on_connect(self, client, userdata, flags, rc):
         if rc == 0:
             self.get_logger().info('Connected to MQTT Broker!')
-            client.subscribe('command/workplan/roller')
+            client.subscribe('work/workinfo/roller')
         else:
             self.get_logger().error(f'Failed to connect, return code {rc}')
 
     def on_disconnect(self, client, userdata, rc):
         self.get_logger().info('Disconnected from MQTT broker')
-        if not self.stop_event.is_set():
-            time.sleep(5)
-            self.connect()
+        if self.stop_event.is_set():
+            return
+        time.sleep(5)
+        self.connect()
 
     # 콜백함수
     def on_message(self, client, userdata, msg):
