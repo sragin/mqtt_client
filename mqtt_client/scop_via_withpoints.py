@@ -22,9 +22,9 @@ from std_msgs.msg import String
 # PORT = 50592
 BROKER = 'localhost'
 PORT = 1883
-CLIENT_ID = "roller_cmd_recv_vib"
-USERNAME = "roller"
-PASSWORD = "roller"
+CLIENT_ID = 'roller_cmd_recv_vib'
+USERNAME = 'roller'
+PASSWORD = 'roller'
 
 
 class MQTTClientNode(Node):
@@ -71,7 +71,7 @@ class MQTTClientNode(Node):
     def on_connect(self, client, userdata, flags, rc):
         if rc == 0:
             self.get_logger().info('Connected to MQTT Broker!')
-            client.subscribe("command/workplan/roller")
+            client.subscribe('command/workplan/roller')
         else:
             self.get_logger().error(f'Failed to connect, return code {rc}')
 
@@ -85,57 +85,57 @@ class MQTTClientNode(Node):
         self.get_logger().info(f'Message received on topic {msg.topic}: {msg.payload.decode()}')
 
     def recv_gpsmsg(self, msg:GPSMsg):
-        self.equip_data["rlr_drm_lttd"] = msg.lat
-        self.equip_data["rlr_drm_lgtd"] = msg.lon
-        self.equip_data["rlr_drm_attd"] = msg.alt
-        self.equip_data["rlr_drm_z_pose"] = msg.heading
-        self.equip_data["rlr_drm_vel"] = msg.speed
-        self.equip_data["rlr_timestamp"] = msg.gpstime
-        self.equip_data["evenDt"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        self.equip_data["rlr_drum_posx"] = msg.tm_x
-        self.equip_data["rlr_drum_posy"] = msg.tm_y
+        self.equip_data['rlr_drm_lttd'] = msg.lat
+        self.equip_data['rlr_drm_lgtd'] = msg.lon
+        self.equip_data['rlr_drm_attd'] = msg.alt
+        self.equip_data['rlr_drm_z_pose'] = msg.heading
+        self.equip_data['rlr_drm_vel'] = msg.speed
+        self.equip_data['rlr_timestamp'] = msg.gpstime
+        self.equip_data['evenDt'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        self.equip_data['rlr_drum_posx'] = msg.tm_x
+        self.equip_data['rlr_drum_posy'] = msg.tm_y
 
     def recv_rlrstat(self, msg:RollerStatus):
-        self.equip_data["rlr_drum_steering"] = msg.steer_angle
+        self.equip_data['rlr_drum_steering'] = msg.steer_angle
 
     def send_equip_data(self):
         msg = String()
         msg.data = json.dumps(self.equip_data, ensure_ascii=False)
 
         if self.mqtt_client.is_connected():
-            self.mqtt_client.publish("equipment/roller", msg.data)
+            self.mqtt_client.publish('equipment/roller', msg.data)
             self.get_logger().info(f'Published data to MQTT topic: {msg.data}')
 
     # 유틸함수
     def make_equip_data(self):
         return {
-            "prjId": "b703bf96-e305-48f9-bd7f-89d87053aca5",
-            "userId": "01076257625",
-            "assetId": "1ec3d361-48a2-4cdb-a39f-95116c5d67ed",
-            "assetNm": "3세부자동화진동롤러",
-            "planId": "45da8d5a1c3a156f940ec8fa59be6384",
-            "targetId": "1234",
-            "assetType": "02",
-            "gpsType": "DUAL",
-            "rlr_drm_lttd": "",
-            "rlr_drm_lgtd": "",
-            "rlr_drm_attd": "",
-            "rlr_drm_z_pose": "",
-            "rlr_drm_vel": "",
-            "evenDt": "",
-            "rlr_timestamp": "",
-            "status": "1",
-            "rlr_drm_x_pose": "",
-            "rlr_drm_y_pose": "",
-            "work_status": "",
-            "rlr_drum_roll": "",
-            "rlr_drum_pitch": "",
-            "rlr_drum_posx": "",
-            "rlr_drum_posy": "",
-            "rlr_drum_posz": "",
-            "rlr_drum_steering": "",
-            "rlr_drum_vib": "",
-            "rlr_CMV": ""
+            'prjId': 'b703bf96-e305-48f9-bd7f-89d87053aca5',
+            'userId': '01076257625',
+            'assetId': '1ec3d361-48a2-4cdb-a39f-95116c5d67ed',
+            'assetNm': '3세부자동화진동롤러',
+            'planId': '45da8d5a1c3a156f940ec8fa59be6384',
+            'targetId': '1234',
+            'assetType': '02',
+            'gpsType': 'DUAL',
+            'rlr_drm_lttd': '',
+            'rlr_drm_lgtd': '',
+            'rlr_drm_attd': '',
+            'rlr_drm_z_pose': '',
+            'rlr_drm_vel': '',
+            'evenDt': '',
+            'rlr_timestamp': '',
+            'status': '1',
+            'rlr_drm_x_pose': '',
+            'rlr_drm_y_pose': '',
+            'work_status': '',
+            'rlr_drum_roll': '',
+            'rlr_drum_pitch': '',
+            'rlr_drum_posx': '',
+            'rlr_drum_posy': '',
+            'rlr_drum_posz': '',
+            'rlr_drum_steering': '',
+            'rlr_drum_vib': '',
+            'rlr_CMV': ''
         }
 
 
