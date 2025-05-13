@@ -1,3 +1,11 @@
+#-*- coding: utf-8 -*-
+"""
+국토부3세부
+SCOP에서 전송한 MQTT 정보를 Withpoints MQTT Broker에서 접속해 수신하는 프로그램
+
+copyright KOCETI
+"""
+
 import json
 import time
 from datetime import datetime
