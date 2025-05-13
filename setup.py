@@ -21,6 +21,7 @@ setup(
     entry_points={
         'console_scripts': [
             'mqtt_scop = mqtt_client.scop_via_withpoints:main',
+            'mqtt_client_test = mqtt_client.mqtt_client_node:main',
         ],
     },
 )
